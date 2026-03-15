@@ -457,6 +457,6 @@ def api_update_profile():
     return jsonify({'success':True,'message':'Profile updated!'})
 
 if __name__ == '__main__':
-    init_db()
     import os
-app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    init_db()
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
