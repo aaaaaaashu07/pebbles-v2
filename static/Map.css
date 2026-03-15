@@ -1,0 +1,287 @@
+/* ── Map page ── */
+.map-page {
+  display:flex; flex-direction:column;
+  height:calc(100vh - 60px); overflow:hidden;
+}
+
+/* Filter + stats bar */
+.map-bar {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 20px;
+  background:rgba(12,15,14,0.95);
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap; flex-shrink:0; z-index:10;
+}
+
+.filter-btn {
+  padding:5px 13px; border-radius:20px;
+  font-size:12px; font-weight:500; cursor:pointer;
+  border:1px solid var(--border); color:var(--muted);
+  background:transparent; transition:all 0.18s;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.filter-btn:hover { color:var(--text); border-color:rgba(120,180,100,0.3); }
+.filter-btn.on { background:rgba(120,180,100,0.1); border-color:rgba(120,180,100,0.4); color:var(--green2); }
+.filter-btn.on.ev  { background:rgba(45,212,191,0.08); border-color:rgba(45,212,191,0.35); color:var(--ev); }
+.filter-btn.on.tw  { background:rgba(251,146,60,0.08); border-color:rgba(251,146,60,0.35); color:var(--tw); }
+.filter-btn.on.vis { background:rgba(251,191,36,0.08); border-color:rgba(251,191,36,0.35); color:var(--vis); }
+.filter-btn.on.hc  { background:rgba(96,165,250,0.08); border-color:rgba(96,165,250,0.35); color:var(--hc); }
+
+.bar-stats {
+  margin-left:auto; display:flex; gap:12px;
+  font-size:12px; color:var(--muted); flex-shrink:0;
+}
+.bar-stats b { color:var(--text); }
+
+/* Map canvas */
+.map-canvas {
+  flex:1; overflow:auto; position:relative;
+  background:
+    linear-gradient(rgba(120,180,100,0.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(120,180,100,0.018) 1px,transparent 1px),
+    var(--bg);
+  background-size:32px 32px;
+}
+
+/* Blueprint world */
+.bp-world {
+  position:relative;
+  width:1080px; height:900px;
+  margin:24px auto;
+}
+
+/* ── Roads / paths ── */
+.road {
+  position:absolute; background:#141a14;
+  border:1px solid rgba(120,180,100,0.06);
+  z-index:1;
+}
+.road-h { height:32px; }
+.road-v { width:32px; }
+.road-h::after {
+  content:''; position:absolute; top:50%; left:10px; right:10px; height:1px;
+  background:repeating-linear-gradient(90deg,rgba(120,180,100,0.15) 0,rgba(120,180,100,0.15) 14px,transparent 14px,transparent 28px);
+  transform:translateY(-50%);
+}
+.road-v::after {
+  content:''; position:absolute; left:50%; top:10px; bottom:10px; width:1px;
+  background:repeating-linear-gradient(180deg,rgba(120,180,100,0.15) 0,rgba(120,180,100,0.15) 14px,transparent 14px,transparent 28px);
+  transform:translateX(-50%);
+}
+
+/* ── Gate label ── */
+.gate-lbl {
+  position:absolute; z-index:10;
+  background:var(--surf); border:1px solid rgba(120,180,100,0.25);
+  border-radius:6px; padding:5px 12px;
+  font-size:11px; color:var(--green2);
+  letter-spacing:1px; text-transform:uppercase;
+  font-weight:700; white-space:nowrap;
+  box-shadow:0 0 10px rgba(120,180,100,0.1);
+}
+
+/* ── Building blocks ── */
+.building {
+  position:absolute; z-index:4;
+  background:var(--surf2);
+  border:1px solid rgba(120,180,100,0.18);
+  border-radius:8px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:2px;
+}
+.building-id {
+  font-family:'Playfair Display',serif;
+  font-size:22px; font-weight:700; color:var(--green2); line-height:1;
+}
+.building-info { font-size:9px; color:var(--muted); letter-spacing:0.5px; text-align:center; line-height:1.4; }
+
+/* Windows pattern on building */
+.building::before {
+  content:''; position:absolute; inset:6px;
+  background-image:
+    repeating-linear-gradient(0deg,transparent 0,transparent 8px,rgba(255,220,80,0.06) 8px,rgba(255,220,80,0.06) 10px),
+    repeating-linear-gradient(90deg,transparent 0,transparent 8px,rgba(255,220,80,0.06) 8px,rgba(255,220,80,0.06) 10px);
+  border-radius:4px; pointer-events:none;
+}
+
+/* ── Amenity blocks ── */
+.amenity {
+  position:absolute; z-index:3;
+  background:rgba(20,26,20,0.9);
+  border:1px solid var(--border);
+  border-radius:8px; padding:8px 12px;
+  font-size:11px; color:var(--muted);
+  display:flex; align-items:center; gap:6px;
+  white-space:nowrap; font-weight:500;
+}
+.amenity.pool  { border-color:rgba(96,165,250,0.15); color:#93c5fd; }
+.amenity.green { border-color:rgba(120,180,100,0.15); color:var(--green2); }
+.amenity.gym   { border-color:rgba(251,191,36,0.15); color:#fde68a; }
+
+/* ── Parking zones ── */
+.pzone {
+  position:absolute; z-index:5;
+  background:rgba(19,23,19,0.8);
+  backdrop-filter:blur(4px);
+  border:1px solid var(--border);
+  border-radius:10px; padding:8px;
+}
+.pzone-title {
+  font-size:9px; color:var(--muted);
+  letter-spacing:1.2px; text-transform:uppercase;
+  font-weight:700; margin-bottom:5px; padding-left:1px;
+}
+.pzone.ev-zone  { border-color:rgba(45,212,191,0.15); }
+.pzone.tw-zone  { border-color:rgba(251,146,60,0.15); }
+.pzone.vis-zone { border-color:rgba(251,191,36,0.15); }
+.pzone.hc-zone  { border-color:rgba(96,165,250,0.15); }
+.pzone.ev-zone .pzone-title  { color:var(--ev); }
+.pzone.tw-zone .pzone-title  { color:var(--tw); }
+.pzone.vis-zone .pzone-title { color:var(--vis); }
+.pzone.hc-zone .pzone-title  { color:var(--hc); }
+
+/* slot grid inside zone */
+.slot-grid { display:grid; gap:3px; }
+
+/* ── Individual parking slot ── */
+.pslot {
+  border-radius:4px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s; border:1px solid transparent;
+  position:relative; overflow:hidden;
+  width:28px; height:20px;
+}
+.pslot-lbl {
+  font-size:7px; font-weight:700;
+  color:rgba(255,255,255,0.7); pointer-events:none;
+  letter-spacing:0.2px; z-index:1;
+  white-space:nowrap;
+}
+
+/* hover sheen */
+.pslot::before {
+  content:''; position:absolute;
+  top:0; left:-100%; width:50%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);
+  transition:left 0.35s;
+}
+.pslot:hover::before { left:150%; }
+
+/* status */
+.pslot.free {
+  background:rgba(120,180,100,0.15);
+  border-color:rgba(120,180,100,0.35);
+}
+.pslot.free:hover {
+  background:rgba(120,180,100,0.28);
+  transform:scale(1.1); z-index:10;
+  box-shadow:0 0 8px rgba(120,180,100,0.25);
+}
+.pslot.occupied {
+  background:rgba(248,113,113,0.08);
+  border-color:rgba(248,113,113,0.2);
+  cursor:not-allowed; opacity:0.65;
+}
+.pslot.mine {
+  background:rgba(120,180,100,0.3);
+  border-color:rgba(120,180,100,0.7);
+  animation:mpulse 2.5s infinite; cursor:pointer;
+}
+@keyframes mpulse{0%,100%{box-shadow:0 0 4px rgba(120,180,100,0.3)}50%{box-shadow:0 0 12px rgba(120,180,100,0.6)}}
+
+.pslot.maintenance {
+  background:rgba(104,117,102,0.1);
+  border-color:rgba(104,117,102,0.2);
+  cursor:not-allowed; opacity:0.4;
+}
+
+/* type colors when free */
+.pslot.ev-s.free   { background:rgba(45,212,191,0.12);  border-color:rgba(45,212,191,0.35); }
+.pslot.ev-s.free:hover { background:rgba(45,212,191,0.25);  box-shadow:0 0 8px rgba(45,212,191,0.2); }
+.pslot.tw-s.free   { background:rgba(251,146,60,0.12);  border-color:rgba(251,146,60,0.35); }
+.pslot.tw-s.free:hover { background:rgba(251,146,60,0.25);  box-shadow:0 0 8px rgba(251,146,60,0.2); }
+.pslot.vis-s.free  { background:rgba(251,191,36,0.1);   border-color:rgba(251,191,36,0.35); }
+.pslot.vis-s.free:hover{ background:rgba(251,191,36,0.22);  box-shadow:0 0 8px rgba(251,191,36,0.2); }
+.pslot.hc-s.free   { background:rgba(96,165,250,0.1);   border-color:rgba(96,165,250,0.35); }
+.pslot.hc-s.free:hover { background:rgba(96,165,250,0.22);  box-shadow:0 0 8px rgba(96,165,250,0.2); }
+
+.pslot.dim { opacity:0.1; pointer-events:none; transform:none !important; }
+
+/* ── Slot detail panel ── */
+.detail-panel {
+  position:fixed; right:20px; bottom:20px;
+  width:292px; background:var(--surf);
+  border:1px solid var(--border); border-radius:16px;
+  z-index:400; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  animation:rise 0.22s ease; overflow:hidden;
+}
+.detail-panel.hidden { display:none; }
+
+.dp-head {
+  padding:16px 18px 12px;
+  background:rgba(120,180,100,0.04);
+  border-bottom:1px solid var(--border);
+  display:flex; justify-content:space-between; align-items:flex-start;
+}
+.dp-id {
+  font-family:'Playfair Display',serif;
+  font-size:24px; color:var(--green2); line-height:1;
+}
+.dp-zone { font-size:11px; color:var(--muted); margin-top:2px; }
+.dp-close {
+  background:none; border:none; color:var(--muted);
+  cursor:pointer; font-size:16px; padding:2px; line-height:1;
+  border-radius:4px; transition:0.2s;
+}
+.dp-close:hover { color:var(--text); background:rgba(120,180,100,0.08); }
+
+.dp-body { padding:14px 18px; display:flex; flex-direction:column; gap:8px; }
+.dp-row { display:flex; justify-content:space-between; font-size:13px; }
+.dp-row .l { color:var(--muted); font-weight:300; }
+.dp-row .r { color:var(--text); font-weight:500; text-align:right; max-width:160px; }
+
+.dp-vehicle-input { padding:0 18px 10px; }
+.dp-vehicle-input label { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; font-weight:600; display:block; margin-bottom:5px; }
+
+.dp-hours { padding:0 18px 10px; display:flex; align-items:center; gap:8px; }
+.dp-hours label { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; font-weight:600; white-space:nowrap; }
+.dp-hours select { flex:1; }
+
+.dp-actions { padding:0 18px 16px; display:flex; flex-direction:column; gap:8px; }
+
+/* ── Legend ── */
+.map-legend {
+  display:flex; gap:14px; align-items:center;
+  padding:9px 20px;
+  background:rgba(12,15,14,0.92);
+  border-top:1px solid var(--border);
+  flex-wrap:wrap; flex-shrink:0;
+}
+.leg { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+.leg-sw {
+  width:12px; height:9px; border-radius:2px; border:1px solid transparent;
+}
+.leg-sw.free  { background:rgba(120,180,100,0.2);  border-color:rgba(120,180,100,0.4); }
+.leg-sw.occ   { background:rgba(248,113,113,0.12); border-color:rgba(248,113,113,0.3); }
+.leg-sw.mine  { background:rgba(120,180,100,0.35); border-color:rgba(120,180,100,0.8); }
+.leg-sw.ev    { background:rgba(45,212,191,0.15);  border-color:rgba(45,212,191,0.4); }
+.leg-sw.tw    { background:rgba(251,146,60,0.15);  border-color:rgba(251,146,60,0.4); }
+.leg-sw.vis   { background:rgba(251,191,36,0.12);  border-color:rgba(251,191,36,0.4); }
+.leg-sw.hc    { background:rgba(96,165,250,0.12);  border-color:rgba(96,165,250,0.4); }
+.leg-sw.maint { background:rgba(104,117,102,0.1);  border-color:rgba(104,117,102,0.25); }
+
+.map-hint { margin-left:auto; font-size:11px; color:var(--muted); }
+
+/* ── Expiry countdown ── */
+.expiry-bar {
+  position:fixed; top:70px; left:50%; transform:translateX(-50%);
+  background:var(--surf); border:1px solid rgba(251,191,36,0.3);
+  border-radius:20px; padding:6px 16px;
+  font-size:12px; color:var(--vis); z-index:200;
+  display:flex; align-items:center; gap:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  animation:rise 0.3s ease;
+}
+.expiry-bar.hidden { display:none; }
+.expiry-bar.urgent { border-color:rgba(248,113,113,0.4); color:#fca5a5; }

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Profile — Pebbles Heights</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-logo"><div class="nav-dot"></div>Pebbles Heights</div>
+  <div class="nav-links">
+    <a href="/map"     class="nav-link">🗺 <span>Map</span></a>
+    <a href="/history" class="nav-link">📋 <span>Bookings</span></a>
+    <a href="/profile" class="nav-link active">👤 <span>Profile</span></a>
+    <a href="/logout"  class="nav-logout">Logout</a>
+  </div>
+</nav>
+<script id="user-data" type="application/json">{{ user|tojson }}</script>
+<div class="main" style="max-width:700px">
+  <div class="pg-head">
+    <div class="pg-title">My Profile</div>
+    <div class="pg-sub">Manage your details and registered vehicles</div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Profile info -->
+    <div class="card">
+      <div class="card-title">Resident Details</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="field"><label>Full Name</label><input class="input" id="p-name" placeholder="Your name"></div>
+        <div class="field-row">
+          <div class="field">
+            <label>Tower</label>
+            <select class="input" id="p-tower">
+              <option value="">—</option>
+              <option>A</option><option>B</option><option>C</option><option>D</option>
+              <option>E</option><option>F</option><option>G</option>
+            </select>
+          </div>
+          <div class="field"><label>Flat No.</label><input class="input" id="p-flat" placeholder="304"></div>
+        </div>
+        <div class="field"><label>Phone</label><input class="input" id="p-phone" type="tel" placeholder="10-digit number"></div>
+        <div class="field"><label>Email</label><input class="input" id="p-email" disabled style="opacity:0.5;cursor:not-allowed"></div>
+        <div class="divider"></div>
+        <div class="field"><label>New Password (leave blank to keep)</label><input class="input" id="p-pass" type="password" placeholder="Min 6 characters"></div>
+        <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- Vehicles -->
+    <div class="card">
+      <div class="card-title">My Vehicles <span style="font-size:11px;color:var(--muted);font-weight:400">(max 4)</span></div>
+      <div id="v-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+      <div class="divider"></div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div class="field">
+          <label>Number Plate</label>
+          <input class="input" id="v-plate" placeholder="MH12AB1234" style="text-transform:uppercase;letter-spacing:1px">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Type</label>
+            <select class="input" id="v-type">
+              <option value="car">🚗 Car</option>
+              <option value="tw">🛵 Two-Wheeler</option>
+              <option value="ev">⚡ EV</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Label</label>
+            <input class="input" id="v-label" placeholder="e.g. My Swift">
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="addVehicle()">+ Add Vehicle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const VTYPES={car:'🚗 Car',ev:'⚡ EV',tw:'🛵 Two-Wheeler'};
+
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type}`;
+  setTimeout(()=>t.className='toast hidden',3000);
+}
+
+document.getElementById('v-plate').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+async function loadProfile(){
+  const res=await fetch('/api/slots'); // just to trigger auth check
+  // Load user data from page
+  const user=JSON.parse(document.getElementById('user-data').textContent);
+  document.getElementById('p-name').value=user.name||'';
+  document.getElementById('p-tower').value=user.tower||'';
+  document.getElementById('p-flat').value=user.flat_no||'';
+  document.getElementById('p-phone').value=user.phone||'';
+  document.getElementById('p-email').value=user.email||'';
+}
+
+async function loadVehicles(){
+  const res=await fetch('/api/vehicles');
+  const vs=await res.json();
+  const list=document.getElementById('v-list');
+  list.innerHTML='';
+  if(!vs.length){
+    list.innerHTML='<p style="font-size:13px;color:var(--muted)">No vehicles registered yet</p>';
+    return;
+  }
+  vs.forEach(v=>{
+    const div=document.createElement('div');
+    div.className='vehicle-card';
+    div.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">${v.type==='car'?'🚗':v.type==='tw'?'🛵':'⚡'}</span>
+        <div>
+          <div class="plate-badge">${v.plate}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${v.label||VTYPES[v.type]||v.type}</div>
+        </div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="delVehicle(${v.id})">Remove</button>`;
+    list.appendChild(div);
+  });
+}
+
+async function saveProfile(){
+  const res=await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      name:document.getElementById('p-name').value.trim(),
+      phone:document.getElementById('p-phone').value.trim(),
+      flat:document.getElementById('p-flat').value.trim(),
+      tower:document.getElementById('p-tower').value,
+      new_password:document.getElementById('p-pass').value
+    })});
+  const d=await res.json();
+  showToast(d.message||'Saved!',d.success?'ok':'err');
+}
+
+async function addVehicle(){
+  const plate=document.getElementById('v-plate').value.trim().toUpperCase();
+  const type=document.getElementById('v-type').value;
+  const label=document.getElementById('v-label').value.trim();
+  if(!plate){showToast('Enter a number plate','err');return;}
+  const res=await fetch('/api/vehicles',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({plate,type,label})});
+  const d=await res.json();
+  showToast(d.success?`✅ ${plate} added!`:d.message,d.success?'ok':'err');
+  if(d.success){
+    document.getElementById('v-plate').value='';
+    document.getElementById('v-label').value='';
+    loadVehicles();
+  }
+}
+
+async function delVehicle(id){
+  await fetch(`/api/vehicles/${id}`,{method:'DELETE'});
+  showToast('Vehicle removed','ok');
+  loadVehicles();
+}
+
+loadProfile();
+loadVehicles();
+</script>
+</body>
+</html>

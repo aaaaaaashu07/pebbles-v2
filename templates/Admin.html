@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin — Pebbles Heights</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-logo"><div class="nav-dot"></div>Pebbles Heights <span class="badge b-yellow" style="font-size:10px;margin-left:6px">Admin</span></div>
+  <div class="nav-links">
+    <a href="/map"    class="nav-link">🗺 Map</a>
+    <a href="/guard"  class="nav-link">🛡 Guard</a>
+    <a href="/admin"  class="nav-link active">⚙️ Admin</a>
+    <a href="/logout" class="nav-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="pg-head">
+    <div class="pg-title">Admin Dashboard</div>
+    <div class="pg-sub">Pebbles Heights · 7 Towers · 628 Units</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4" style="margin-bottom:20px" id="stats-grid">
+    <div class="stat s-green"><div class="stat-val" id="s-free">—</div><div class="stat-lbl">🟢 Free Slots</div></div>
+    <div class="stat s-red"><div class="stat-val" id="s-occ">—</div><div class="stat-lbl">🔴 Occupied</div></div>
+    <div class="stat s-muted"><div class="stat-val" id="s-maint">—</div><div class="stat-lbl">🔧 Maintenance</div></div>
+    <div class="stat s-ev"><div class="stat-val" id="s-ev">—</div><div class="stat-lbl">⚡ EV Free</div></div>
+    <div class="stat s-tw"><div class="stat-val" id="s-tw">—</div><div class="stat-lbl">🛵 2W Free</div></div>
+    <div class="stat s-vis"><div class="stat-val" id="s-vis">—</div><div class="stat-lbl">👥 Visitor Free</div></div>
+    <div class="stat"><div class="stat-val" id="s-users">—</div><div class="stat-lbl">👤 Residents</div></div>
+    <div class="stat"><div class="stat-val" id="s-bk">—</div><div class="stat-lbl">📋 Total Bookings</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('bookings',this)">📋 Recent Bookings</button>
+    <button class="tab" onclick="switchTab('slots',this)">🅿️ Slot Management</button>
+    <button class="tab" onclick="switchTab('add',this)">➕ Add Slot</button>
+  </div>
+
+  <!-- Bookings tab -->
+  <div id="tab-bookings" class="card">
+    <div class="card-title">Recent Bookings</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Resident</th><th>Flat</th><th>Slot</th><th>Vehicle</th>
+            <th>Zone</th><th>Type</th><th>Booked At</th><th>Expires</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="bk-body"></tbody>
+      </table>
+      <div class="empty hidden" id="bk-empty"><div class="empty-icon">📋</div><p>No bookings yet</p></div>
+    </div>
+  </div>
+
+  <!-- Slots tab -->
+  <div id="tab-slots" class="card" style="display:none">
+    <div class="card-title">Manage Slots <span style="font-size:12px;color:var(--muted);font-weight:400">— toggle maintenance, delete empty slots</span></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Slot</th><th>Tower</th><th>Zone</th><th>Type</th><th>Floor</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="slot-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add slot tab -->
+  <div id="tab-add" class="card" style="display:none;max-width:400px">
+    <div class="card-title">Add New Slot</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label>Slot Number</label><input class="input" id="ns-num" placeholder="e.g. A-G9" style="text-transform:uppercase"></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tower</label>
+          <select class="input" id="ns-tower">
+            <option value="Common">Common</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option>
+            <option>E</option><option>F</option><option>G</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select class="input" id="ns-type">
+            <option value="car">🚗 Car</option>
+            <option value="ev">⚡ EV</option>
+            <option value="tw">🛵 Two-Wheeler</option>
+            <option value="visitor">👥 Visitor</option>
+            <option value="hc">♿ Accessible</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Zone Label</label><input class="input" id="ns-zone" placeholder="e.g. Tower A Ground"></div>
+        <div class="field">
+          <label>Floor</label>
+          <select class="input" id="ns-floor">
+            <option>Ground</option><option>Podium</option><option>Basement</option><option>Level 1</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addSlot()">Add Slot</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const TB={car:'b-muted',ev:'b-ev',tw:'b-tw',visitor:'b-vis',hc:'b-hc'};
+
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type}`;
+  setTimeout(()=>t.className='toast hidden',3000);
+}
+
+function switchTab(name,btn){
+  ['bookings','slots','add'].forEach(t=>{
+    document.getElementById(`tab-${t}`).style.display=t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(name==='slots') loadSlots();
+}
+
+async function loadStats(){
+  const res=await fetch('/api/stats');
+  const d=await res.json();
+  document.getElementById('s-free').textContent=d.free;
+  document.getElementById('s-occ').textContent=d.occupied;
+  document.getElementById('s-maint').textContent=d.maintenance;
+  document.getElementById('s-ev').textContent=d.ev_free;
+  document.getElementById('s-tw').textContent=d.tw_free;
+  document.getElementById('s-vis').textContent=d.vis_free;
+  document.getElementById('s-users').textContent=d.users;
+  document.getElementById('s-bk').textContent=d.bookings;
+}
+
+async function loadBookings(){
+  const res=await fetch('/api/all-bookings');
+  const rows=await res.json();
+  const tbody=document.getElementById('bk-body');
+  const empty=document.getElementById('bk-empty');
+  tbody.innerHTML='';
+  if(!rows.length){empty.classList.remove('hidden');return;}
+  rows.forEach(b=>{
+    const tr=document.createElement('tr');
+    const exp=b.expires_at?new Date(b.expires_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+    tr.innerHTML=`
+      <td><div style="font-weight:500">${b.name}</div><div style="font-size:11px;color:var(--muted)">${b.email}</div></td>
+      <td style="font-size:12px;color:var(--muted)">T${b.user_tower||'—'}·${b.flat_no||'—'}</td>
+      <td><b style="font-family:'Playfair Display',serif;font-size:16px;color:var(--green2)">${b.slot_number}</b></td>
+      <td><span style="letter-spacing:1.5px;font-weight:700;font-size:11px">${b.vehicle_no||'—'}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${b.zone}</td>
+      <td><span class="badge ${TB[b.slot_type]||'b-muted'}" style="font-size:10px">${b.slot_type}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${b.booked_at}</td>
+      <td style="font-size:11px;color:var(--vis)">${exp}</td>
+      <td><span class="badge ${b.status==='active'?'b-green':b.status==='completed'?'b-muted':'b-red'}" style="font-size:10px">${b.status}</span></td>
+      <td>${b.status==='active'?`<button class="btn btn-danger btn-sm" onclick="forceRelease(${b.slot_id})">Free</button>`:''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function loadSlots(){
+  const res=await fetch('/api/slots');
+  const slots=await res.json();
+  const tbody=document.getElementById('slot-body');
+  tbody.innerHTML='';
+  slots.forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><b style="font-family:'Playfair Display',serif;font-size:15px;color:var(--green2)">${s.slot_number}</b></td>
+      <td style="font-size:12px;color:var(--muted)">${s.tower}</td>
+      <td style="font-size:12px;color:var(--muted)">${s.zone}</td>
+      <td><span class="badge ${TB[s.slot_type]||'b-muted'}" style="font-size:10px">${s.slot_type}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${s.floor_level}</td>
+      <td>${s.maintenance?'<span class="badge b-red" style="font-size:10px">Maintenance</span>':s.status==='occupied'?'<span class="badge b-red" style="font-size:10px">Occupied</span>':'<span class="badge b-green" style="font-size:10px">Free</span>'}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="toggleMaint(${s.id})">${s.maintenance?'✅ Restore':'🔧 Maintenance'}</button>
+        ${s.status==='free'&&!s.maintenance?`<button class="btn btn-danger btn-sm" onclick="deleteSlot(${s.id},'${s.slot_number}')">Delete</button>`:''}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function forceRelease(id){
+  const res=await fetch('/api/release',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot_id:id})});
+  const d=await res.json();
+  showToast(d.message,d.success?'ok':'err');
+  if(d.success){loadBookings();loadStats();}
+}
+
+async function toggleMaint(id){
+  const res=await fetch('/api/admin/slot',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'toggle_maintenance',slot_id:id})});
+  const d=await res.json();
+  showToast(d.maintenance?'🔧 Slot under maintenance':'✅ Slot restored','ok');
+  loadSlots(); loadStats();
+}
+
+async function deleteSlot(id,num){
+  if(!confirm(`Delete slot ${num}? This cannot be undone.`)) return;
+  const res=await fetch('/api/admin/slot',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'delete_slot',slot_id:id})});
+  const d=await res.json();
+  showToast(d.success?`Slot ${num} deleted`:d.message,d.success?'ok':'err');
+  if(d.success){loadSlots();loadStats();}
+}
+
+async function addSlot(){
+  const num=document.getElementById('ns-num').value.trim().toUpperCase();
+  const tower=document.getElementById('ns-tower').value;
+  const type=document.getElementById('ns-type').value;
+  const zone=document.getElementById('ns-zone').value.trim();
+  const floor=document.getElementById('ns-floor').value;
+  if(!num){showToast('Slot number required','err');return;}
+  const res=await fetch('/api/admin/slot',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'add_slot',slot_number:num,tower,slot_type:type,zone:zone||`Tower ${tower}`,floor_level:floor})});
+  const d=await res.json();
+  showToast(d.message||'Added!',d.success?'ok':'err');
+  if(d.success){document.getElementById('ns-num').value='';loadStats();}
+}
+
+document.getElementById('ns-num').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+loadStats();
+loadBookings();
+setInterval(()=>{loadStats();loadBookings();},15000);
+</script>
+</body>
+</html>

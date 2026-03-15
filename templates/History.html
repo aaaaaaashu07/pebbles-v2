@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Bookings — Pebbles Heights</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-logo"><div class="nav-dot"></div>Pebbles Heights</div>
+  <div class="nav-links">
+    <a href="/map"     class="nav-link">🗺 <span>Map</span></a>
+    <a href="/history" class="nav-link active">📋 <span>Bookings</span></a>
+    <a href="/profile" class="nav-link">👤 <span>Profile</span></a>
+    <a href="/logout"  class="nav-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="pg-head">
+    <div class="pg-title">My Bookings</div>
+    <div class="pg-sub">All your parking reservations at Pebbles Heights</div>
+  </div>
+
+  <!-- Active bookings -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Active Now</div>
+    <div id="active-wrap">
+      <div class="empty" id="active-empty" style="padding:20px">
+        <p>No active bookings</p>
+      </div>
+      <div id="active-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-title">History</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Slot</th>
+            <th>Vehicle</th>
+            <th>Zone</th>
+            <th>Type</th>
+            <th>Booked At</th>
+            <th>Expires/Released</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="hist-body"></tbody>
+      </table>
+      <div class="empty hidden" id="hist-empty">
+        <div class="empty-icon">🅿️</div>
+        <p>No bookings yet · <a href="/map" style="color:var(--green2)">Go to map →</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const TB={car:'b-muted',ev:'b-ev',tw:'b-tw',visitor:'b-vis',hc:'b-hc'};
+const TYPES={car:'🚗 Car',ev:'⚡ EV',tw:'🛵 2W',visitor:'👥 Visitor',hc:'♿ HC'};
+
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type}`;
+  setTimeout(()=>t.className='toast hidden',3000);
+}
+
+async function release(id){
+  const res=await fetch('/api/release',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot_id:id})});
+  const d=await res.json();
+  showToast(d.message,d.success?'ok':'err');
+  if(d.success) load();
+}
+
+async function load(){
+  const res=await fetch('/api/my-bookings');
+  const bookings=await res.json();
+
+  const activeList=document.getElementById('active-list');
+  const activeEmpty=document.getElementById('active-empty');
+  const tbody=document.getElementById('hist-body');
+  const histEmpty=document.getElementById('hist-empty');
+
+  activeList.innerHTML=''; tbody.innerHTML='';
+
+  const active=bookings.filter(b=>b.status==='active');
+  const history=bookings.filter(b=>b.status!=='active');
+
+  if(active.length){
+    activeEmpty.style.display='none';
+    activeList.style.display='flex';
+    active.forEach(b=>{
+      const exp=new Date(b.expires_at);
+      const diff=exp-new Date();
+      const hrs=Math.max(0,Math.floor(diff/3600000));
+      const mins=Math.max(0,Math.floor((diff%3600000)/60000));
+      const urgent=diff<3600000;
+      const card=document.createElement('div');
+      card.style.cssText='background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
+      if(urgent) card.style.borderColor='rgba(248,113,113,0.3)';
+      card.innerHTML=`
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:'Playfair Display',serif;font-size:20px;color:var(--green2)">${b.slot_number}</span>
+            <span class="badge ${TB[b.slot_type]||'b-muted'}">${TYPES[b.slot_type]||b.slot_type}</span>
+            <span class="badge b-green">Active</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted)">${b.zone} · Vehicle: <b style="color:var(--text);letter-spacing:1px">${b.vehicle_no||'—'}</b></div>
+          <div style="font-size:12px;color:${urgent?'#fca5a5':'var(--vis)'}">⏱ Expires in ${hrs}h ${mins}m (${exp.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})})</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="release(${b.slot_id})">Release</button>`;
+      activeList.appendChild(card);
+    });
+  } else {
+    activeEmpty.style.display='block';
+    activeList.style.display='none';
+  }
+
+  if(!history.length){
+    document.querySelector('table').style.display='none';
+    histEmpty.classList.remove('hidden'); return;
+  }
+  history.forEach(b=>{
+    const tr=document.createElement('tr');
+    const endTime=b.released_at||b.expires_at||'—';
+    tr.innerHTML=`
+      <td><b style="font-family:'Playfair Display',serif;font-size:16px;color:var(--green2)">${b.slot_number}</b></td>
+      <td><span style="letter-spacing:1.5px;font-weight:600;font-size:12px;color:var(--text)">${b.vehicle_no||'—'}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${b.zone}</td>
+      <td><span class="badge ${TB[b.slot_type]||'b-muted'}">${TYPES[b.slot_type]||b.slot_type}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${b.booked_at}</td>
+      <td style="font-size:12px;color:var(--muted)">${endTime}</td>
+      <td><span class="badge ${b.status==='completed'?'b-muted':'b-red'}">${b.status}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+load();
+setInterval(load, 10000);
+</script>
+</body>
+</html>

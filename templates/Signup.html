@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Register — Pebbles Heights</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card" style="max-width:460px">
+    <div class="auth-logo">
+      <span class="icon">🏘️</span>
+      <h1>Pebbles Heights</h1>
+      <p>Create Resident Account</p>
+    </div>
+    <div class="err-box" id="err"></div>
+    <div class="auth-form">
+      <div class="field">
+        <label>Full Name</label>
+        <input class="input" type="text" id="name" placeholder="Your full name">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tower</label>
+          <select class="input" id="tower">
+            <option value="">Select</option>
+            <option>A</option><option>B</option><option>C</option><option>D</option>
+            <option>E</option><option>F</option><option>G</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Flat No.</label>
+          <input class="input" type="text" id="flat" placeholder="e.g. 304">
+        </div>
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input class="input" type="tel" id="phone" placeholder="10-digit mobile number">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input class="input" type="email" id="email" placeholder="your@email.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input class="input" type="password" id="pass" placeholder="Min 6 characters">
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Vehicle pre-registration -->
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">
+        🚗 Pre-register your vehicle (optional — you can add more later)
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Number Plate</label>
+          <input class="input" type="text" id="v-plate" placeholder="MH12AB1234" style="text-transform:uppercase;letter-spacing:1px">
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select class="input" id="v-type">
+            <option value="car">🚗 Car</option>
+            <option value="tw">🛵 Two-Wheeler</option>
+            <option value="ev">⚡ EV</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="doSignup()">Create Account</button>
+    </div>
+    <p class="auth-foot">Already registered? <a href="/login">Sign in</a></p>
+  </div>
+</div>
+<script>
+document.getElementById('v-plate').addEventListener('input',function(){this.value=this.value.toUpperCase();});
+
+async function doSignup(){
+  const name=document.getElementById('name').value.trim();
+  const tower=document.getElementById('tower').value;
+  const flat=document.getElementById('flat').value.trim();
+  const phone=document.getElementById('phone').value.trim();
+  const email=document.getElementById('email').value.trim();
+  const pass=document.getElementById('pass').value;
+  const err=document.getElementById('err');
+
+  if(!name||!email||!pass){err.textContent='Name, email and password are required';err.style.display='block';return;}
+  if(pass.length<6){err.textContent='Password must be at least 6 characters';err.style.display='block';return;}
+
+  const res=await fetch('/api/signup',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,email,password:pass,phone,flat,tower})});
+  const d=await res.json();
+  if(!d.success){err.textContent=d.message;err.style.display='block';return;}
+
+  // Optionally add vehicle
+  const plate=document.getElementById('v-plate').value.trim().toUpperCase();
+  const vtype=document.getElementById('v-type').value;
+  if(plate){
+    await fetch('/api/vehicles',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plate,type:vtype,label:vtype==='car'?'My Car':vtype==='tw'?'My Bike':'My EV'})});
+  }
+  window.location.href='/map';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});
+</script>
+</body>
+</html>

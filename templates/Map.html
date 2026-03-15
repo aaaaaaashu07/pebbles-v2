@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Parking Map — Pebbles Heights</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/map.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-logo"><div class="nav-dot"></div>Pebbles Heights</div>
+  <div class="nav-links">
+    <a href="/map"     class="nav-link active">🗺 <span>Map</span></a>
+    <a href="/history" class="nav-link">📋 <span>Bookings</span></a>
+    <a href="/profile" class="nav-link">👤 <span>Profile</span></a>
+    <a href="/logout"  class="nav-logout">Logout</a>
+  </div>
+  <div class="nav-user" id="nav-user">{{ user.name }} · Tower {{ user.tower }}</div>
+</nav>
+
+<!-- Expiry countdown -->
+<div class="expiry-bar hidden" id="expiry-bar">
+  ⏱ <span id="expiry-txt"></span>
+</div>
+
+<div class="map-page">
+
+<!-- Filter bar -->
+<div class="map-bar">
+  <button class="filter-btn on"  data-t="all"     onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn"     data-t="car"     onclick="setFilter('car',this)">🚗 Car</button>
+  <button class="filter-btn ev"  data-t="ev"      onclick="setFilter('ev',this)">⚡ EV</button>
+  <button class="filter-btn tw"  data-t="tw"      onclick="setFilter('tw',this)">🛵 Two-Wheeler</button>
+  <button class="filter-btn vis" data-t="visitor" onclick="setFilter('visitor',this)">👥 Visitor</button>
+  <button class="filter-btn hc"  data-t="hc"      onclick="setFilter('hc',this)">♿ Accessible</button>
+
+  <div class="bar-stats">
+    <span>🟢 <b id="bs-free">—</b></span>
+    <span>🔴 <b id="bs-occ">—</b></span>
+    <span>⚡ <b id="bs-ev">—</b></span>
+    <span>🛵 <b id="bs-tw">—</b></span>
+  </div>
+</div>
+
+<!-- Map canvas -->
+<div class="map-canvas">
+<div class="bp-world">
+
+  <!-- ── ROADS ── -->
+  <div class="road road-h" style="top:44px;left:0;width:1080px"></div>
+  <div class="road road-h" style="top:420px;left:0;width:1080px"></div>
+  <div class="road road-h" style="top:800px;left:0;width:1080px"></div>
+  <div class="road road-v" style="left:200px;top:0;height:900px"></div>
+  <div class="road road-v" style="left:530px;top:0;height:900px"></div>
+  <div class="road road-v" style="left:860px;top:0;height:900px"></div>
+
+  <!-- Gate -->
+  <div class="gate-lbl" style="left:470px;top:824px">🚦 Main Gate</div>
+
+  <!-- ── AMENITIES (central area) ── -->
+  <div class="amenity pool"  style="left:240px;top:60px">🏊 Swimming Pool</div>
+  <div class="amenity gym"   style="left:240px;top:106px">🏋️ Gymnasium</div>
+  <div class="amenity green" style="left:240px;top:152px">🌳 Central Garden</div>
+  <div class="amenity"       style="left:240px;top:198px">🎱 Clubhouse</div>
+  <div class="amenity"       style="left:240px;top:244px">🛝 Play Area</div>
+  <div class="amenity green" style="left:240px;top:290px">🏃 Jogging Track</div>
+  <div class="amenity"       style="left:240px;top:336px">🧓 Senior Park</div>
+
+  <div class="amenity"       style="left:575px;top:60px">⛸️ Skating Rink</div>
+  <div class="amenity green" style="left:575px;top:106px">🌿 Landscaped Garden</div>
+  <div class="amenity"       style="left:575px;top:152px">📚 Library</div>
+  <div class="amenity"       style="left:575px;top:198px">🔒 Security Office</div>
+
+  <!-- ══════════ TOWER A ══════════ -->
+  <div class="building" style="left:20px;top:60px;width:150px;height:130px">
+    <div class="building-id">A</div>
+    <div class="building-info">12 Floors · 90 Units</div>
+  </div>
+  <div class="pzone" style="left:20px;top:204px">
+    <div class="pzone-title">Tower A · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-AG"></div>
+  </div>
+  <div class="pzone" style="left:20px;top:308px">
+    <div class="pzone-title">Tower A · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-AP"></div>
+  </div>
+
+  <!-- ══════════ TOWER B ══════════ -->
+  <div class="building" style="left:20px;top:440px;width:150px;height:130px">
+    <div class="building-id">B</div>
+    <div class="building-info">12 Floors · 90 Units</div>
+  </div>
+  <div class="pzone" style="left:20px;top:584px">
+    <div class="pzone-title">Tower B · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-BG"></div>
+  </div>
+  <div class="pzone" style="left:20px;top:688px">
+    <div class="pzone-title">Tower B · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-BP"></div>
+  </div>
+
+  <!-- ══════════ TOWER C ══════════ -->
+  <div class="building" style="left:240px;top:440px;width:150px;height:130px">
+    <div class="building-id">C</div>
+    <div class="building-info">12 Floors · 90 Units</div>
+  </div>
+  <div class="pzone" style="left:240px;top:584px">
+    <div class="pzone-title">Tower C · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-CG"></div>
+  </div>
+  <div class="pzone" style="left:240px;top:688px">
+    <div class="pzone-title">Tower C · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-CP"></div>
+  </div>
+
+  <!-- ══════════ TOWER D ══════════ -->
+  <div class="building" style="left:570px;top:440px;width:150px;height:130px">
+    <div class="building-id">D</div>
+    <div class="building-info">12 Floors · 90 Units</div>
+  </div>
+  <div class="pzone" style="left:570px;top:584px">
+    <div class="pzone-title">Tower D · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-DG"></div>
+  </div>
+  <div class="pzone" style="left:570px;top:688px">
+    <div class="pzone-title">Tower D · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-DP"></div>
+  </div>
+
+  <!-- ══════════ TOWER E ══════════ -->
+  <div class="building" style="left:900px;top:60px;width:150px;height:130px">
+    <div class="building-id">E</div>
+    <div class="building-info">12 Floors · 90 Units</div>
+  </div>
+  <div class="pzone" style="left:900px;top:204px">
+    <div class="pzone-title">Tower E · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-EG"></div>
+  </div>
+  <div class="pzone" style="left:900px;top:308px">
+    <div class="pzone-title">Tower E · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-EP"></div>
+  </div>
+
+  <!-- ══════════ TOWER F ══════════ -->
+  <div class="building" style="left:900px;top:440px;width:150px;height:130px">
+    <div class="building-id">F</div>
+    <div class="building-info">12 Floors · 89 Units</div>
+  </div>
+  <div class="pzone" style="left:900px;top:584px">
+    <div class="pzone-title">Tower F · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-FG"></div>
+  </div>
+  <div class="pzone" style="left:900px;top:688px">
+    <div class="pzone-title">Tower F · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-FP"></div>
+  </div>
+
+  <!-- ══════════ TOWER G ══════════ -->
+  <div class="building" style="left:570px;top:60px;width:150px;height:130px">
+    <div class="building-id">G</div>
+    <div class="building-info">12 Floors · 89 Units</div>
+  </div>
+  <div class="pzone" style="left:570px;top:204px">
+    <div class="pzone-title">Tower G · Ground</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-GG"></div>
+  </div>
+  <div class="pzone" style="left:570px;top:308px">
+    <div class="pzone-title">Tower G · Podium</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-GP"></div>
+  </div>
+
+  <!-- ══════════ SPECIAL ZONES ══════════ -->
+  <div class="pzone ev-zone"  style="left:400px;top:440px">
+    <div class="pzone-title">⚡ EV Charging Zone</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-EV"></div>
+  </div>
+
+  <div class="pzone tw-zone"  style="left:400px;top:560px">
+    <div class="pzone-title">🛵 Two-Wheeler Basement</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(6,1fr)" id="z-TW"></div>
+  </div>
+
+  <div class="pzone vis-zone" style="left:400px;top:680px">
+    <div class="pzone-title">👥 Visitor Parking</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-VIS"></div>
+  </div>
+
+  <div class="pzone hc-zone"  style="left:400px;top:776px">
+    <div class="pzone-title">♿ Accessible</div>
+    <div class="slot-grid" style="grid-template-columns:repeat(4,1fr)" id="z-HC"></div>
+  </div>
+
+</div><!-- bp-world -->
+</div><!-- map-canvas -->
+
+<!-- Legend -->
+<div class="map-legend">
+  <div class="leg"><div class="leg-sw free"></div>Free</div>
+  <div class="leg"><div class="leg-sw occ"></div>Occupied</div>
+  <div class="leg"><div class="leg-sw mine"></div>Yours</div>
+  <div class="leg"><div class="leg-sw ev"></div>EV</div>
+  <div class="leg"><div class="leg-sw tw"></div>2-Wheeler</div>
+  <div class="leg"><div class="leg-sw vis"></div>Visitor</div>
+  <div class="leg"><div class="leg-sw hc"></div>Accessible</div>
+  <div class="leg"><div class="leg-sw maint"></div>Maintenance</div>
+  <div class="map-hint">Click free slot to book · Updates every 5s</div>
+</div>
+
+</div><!-- map-page -->
+
+<!-- Detail Panel -->
+<div class="detail-panel hidden" id="dp">
+  <div class="dp-head">
+    <div><div class="dp-id" id="dp-id">—</div><div class="dp-zone" id="dp-zone">—</div></div>
+    <button class="dp-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="dp-body">
+    <div class="dp-row"><span class="l">Floor</span><span class="r" id="dp-floor">—</span></div>
+    <div class="dp-row"><span class="l">Type</span><span class="r" id="dp-type">—</span></div>
+    <div class="dp-row"><span class="l">Status</span><span class="r" id="dp-status">—</span></div>
+    <div class="dp-row hidden" id="dp-vehicle-row"><span class="l">Vehicle</span><span class="r" id="dp-vehicle">—</span></div>
+    <div class="dp-row hidden" id="dp-expires-row"><span class="l">Expires</span><span class="r" id="dp-expires">—</span></div>
+  </div>
+
+  <!-- Vehicle selector / input -->
+  <div id="dp-v-wrap" class="dp-vehicle-input" style="display:none">
+    <label>Vehicle</label>
+    <select class="input" id="dp-v-select" style="margin-bottom:6px"></select>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+      <input class="input" type="text" id="dp-v-manual" placeholder="Or type plate: MH12AB1234"
+        style="text-transform:uppercase;letter-spacing:1px;font-size:13px">
+    </div>
+  </div>
+
+  <!-- Duration selector -->
+  <div id="dp-h-wrap" class="dp-hours" style="display:none">
+    <label>Duration</label>
+    <select class="input" id="dp-hours">
+      <option value="2">2 hours</option>
+      <option value="4">4 hours</option>
+      <option value="8">8 hours</option>
+      <option value="12" selected>12 hours</option>
+      <option value="24">24 hours</option>
+      <option value="48">48 hours</option>
+    </select>
+  </div>
+
+  <div class="dp-actions" id="dp-actions"></div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const TYPES = {car:'🚗 Car',ev:'⚡ EV Charging',tw:'🛵 Two-Wheeler',visitor:'👥 Visitor',hc:'♿ Accessible'};
+
+// slot_number → zone element id
+const ZONE_MAP = {};
+['A','B','C','D','E','F','G'].forEach(t=>{
+  for(let i=1;i<=8;i++) ZONE_MAP[`${t}-G${i}`]=`z-${t}G`;
+  for(let i=1;i<=4;i++) ZONE_MAP[`${t}-P${i}`]=`z-${t}P`;
+});
+for(let i=1;i<=8;i++)  ZONE_MAP[`EV-${String(i).padStart(2,'0')}`]='z-EV';
+for(let i=1;i<=12;i++) ZONE_MAP[`TW-${String(i).padStart(2,'0')}`]='z-TW';
+for(let i=1;i<=8;i++)  ZONE_MAP[`VIS-${String(i).padStart(2,'0')}`]='z-VIS';
+for(let i=1;i<=4;i++)  ZONE_MAP[`HC-${String(i).padStart(2,'0')}`]='z-HC';
+
+let allSlots={}, myActive=[], myVehicles=[], curFilter='all', selSlot=null;
+
+// ── Load data ──────────────────────────────────────────────────────────────
+async function loadAll(){
+  const [sR,bR,vR,stR]=await Promise.all([
+    fetch('/api/slots'), fetch('/api/my-bookings'),
+    fetch('/api/vehicles'), fetch('/api/stats')
+  ]);
+  const slots=await sR.json(), bookings=await bR.json();
+  myVehicles=await vR.json();
+  const stats=await stR.json();
+
+  allSlots={};
+  slots.forEach(s=>allSlots[s.slot_number]=s);
+  myActive=bookings.filter(b=>b.status==='active').map(b=>b.slot_id);
+
+  document.getElementById('bs-free').textContent=stats.free;
+  document.getElementById('bs-occ').textContent=stats.occupied;
+  document.getElementById('bs-ev').textContent=stats.ev_free;
+  document.getElementById('bs-tw').textContent=stats.tw_free;
+
+  renderMap();
+  checkExpiry(bookings);
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderMap(){
+  document.querySelectorAll('.slot-grid').forEach(el=>el.innerHTML='');
+  Object.values(allSlots).forEach(slot=>{
+    const cid=ZONE_MAP[slot.slot_number];
+    if(!cid) return;
+    const container=document.getElementById(cid);
+    if(!container) return;
+
+    const isMe=myActive.includes(slot.id);
+    const div=document.createElement('div');
+    const tc=slot.slot_type+'-s';
+    let sc=isMe?'mine':slot.status==='occupied'?'occupied':slot.maintenance?'maintenance':'free';
+
+    div.className=`pslot ${tc} ${sc}`;
+    if(curFilter!=='all' && curFilter!==slot.slot_type) div.classList.add('dim');
+
+    const lbl=slot.slot_number.replace(/^[A-Z]+-/,'');
+    div.innerHTML=`<span class="pslot-lbl">${lbl}</span>`;
+    div.title=`${slot.slot_number} · ${isMe?'Your Slot':slot.status}`;
+
+    if(sc==='free'||isMe) div.onclick=()=>openPanel(slot,isMe);
+    container.appendChild(div);
+  });
+}
+
+// ── Expiry countdown ───────────────────────────────────────────────────────
+function checkExpiry(bookings){
+  const active=bookings.filter(b=>b.status==='active');
+  if(!active.length){document.getElementById('expiry-bar').classList.add('hidden');return;}
+  // Find soonest expiry
+  const soonest=active.sort((a,b)=>new Date(a.expires_at)-new Date(b.expires_at))[0];
+  const exp=new Date(soonest.expires_at);
+  const diff=exp-new Date();
+  if(diff<=0){loadAll();return;}
+  const hrs=Math.floor(diff/3600000);
+  const mins=Math.floor((diff%3600000)/60000);
+  const bar=document.getElementById('expiry-bar');
+  const txt=document.getElementById('expiry-txt');
+  bar.classList.remove('hidden','urgent');
+  if(hrs<1) bar.classList.add('urgent');
+  txt.textContent=`Slot ${soonest.slot_number} expires in ${hrs}h ${mins}m`;
+}
+
+// ── Filter ─────────────────────────────────────────────────────────────────
+function setFilter(t,btn){
+  curFilter=t;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.pslot').forEach(el=>{
+    const match=t==='all'||el.classList.contains(t+'-s');
+    el.classList.toggle('dim',!match);
+  });
+}
+
+// ── Panel ──────────────────────────────────────────────────────────────────
+function openPanel(slot,isMe){
+  selSlot=slot;
+  document.getElementById('dp-id').textContent=slot.slot_number;
+  document.getElementById('dp-zone').textContent=slot.zone;
+  document.getElementById('dp-floor').textContent=slot.floor_level;
+  document.getElementById('dp-type').textContent=TYPES[slot.slot_type]||slot.slot_type;
+
+  // Status
+  const sts=document.getElementById('dp-status');
+  if(isMe) sts.innerHTML='<span style="color:var(--green2)">● Your Slot</span>';
+  else if(slot.status==='free') sts.innerHTML='<span style="color:var(--green)">● Available</span>';
+  else sts.innerHTML='<span style="color:var(--red)">● Occupied</span>';
+
+  // Vehicle row
+  const vRow=document.getElementById('dp-vehicle-row');
+  const expRow=document.getElementById('dp-expires-row');
+  if(isMe && slot.vehicle_no){
+    vRow.classList.remove('hidden');
+    document.getElementById('dp-vehicle').textContent=slot.vehicle_no;
+    expRow.classList.remove('hidden');
+    document.getElementById('dp-expires').textContent=
+      new Date(slot.expires_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  } else {
+    vRow.classList.add('hidden');
+    expRow.classList.add('hidden');
+  }
+
+  const vWrap=document.getElementById('dp-v-wrap');
+  const hWrap=document.getElementById('dp-h-wrap');
+  const actions=document.getElementById('dp-actions');
+  actions.innerHTML='';
+
+  if(slot.status==='free' && !slot.maintenance){
+    // Populate vehicle dropdown
+    const sel=document.getElementById('dp-v-select');
+    sel.innerHTML='<option value="">Select your vehicle...</option>';
+    myVehicles.forEach(v=>{
+      const o=document.createElement('option');
+      o.value=v.plate; o.textContent=`${v.plate} · ${TYPES[v.type]||v.type}`;
+      sel.appendChild(o);
+    });
+    vWrap.style.display='block';
+    hWrap.style.display='flex';
+    const btn=document.createElement('button');
+    btn.className='btn btn-primary btn-full';
+    btn.textContent='Confirm Booking';
+    btn.onclick=()=>doBook(slot.id);
+    actions.appendChild(btn);
+  } else if(isMe){
+    vWrap.style.display='none';
+    hWrap.style.display='none';
+    const btn=document.createElement('button');
+    btn.className='btn btn-danger btn-full';
+    btn.textContent='🔓 Release Slot';
+    btn.onclick=()=>doRelease(slot.id);
+    actions.appendChild(btn);
+  } else {
+    vWrap.style.display='none';
+    hWrap.style.display='none';
+  }
+
+  document.getElementById('dp').classList.remove('hidden');
+}
+
+function closePanel(){
+  document.getElementById('dp').classList.add('hidden');
+  selSlot=null;
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+async function doBook(id){
+  const sel=document.getElementById('dp-v-select').value;
+  const manual=document.getElementById('dp-v-manual').value.trim().toUpperCase();
+  const vehicle_no=sel||manual;
+  if(!vehicle_no){
+    showToast('⚠ Please select or enter your vehicle plate','err');return;
+  }
+  const hours=parseInt(document.getElementById('dp-hours').value);
+  const res=await fetch('/api/book',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({slot_id:id,vehicle_no,hours})});
+  const d=await res.json();
+  showToast(d.message,d.success?'ok':'err');
+  if(d.success){closePanel();loadAll();}
+}
+
+async function doRelease(id){
+  const res=await fetch('/api/release',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({slot_id:id})});
+  const d=await res.json();
+  showToast(d.message,d.success?'ok':'err');
+  if(d.success){closePanel();loadAll();}
+}
+
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type}`;
+  setTimeout(()=>t.className='toast hidden',3500);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('dp-v-manual').addEventListener('input',function(){
+  this.value=this.value.toUpperCase();
+  if(this.value) document.getElementById('dp-v-select').value='';
+});
+document.getElementById('dp-v-select').addEventListener('change',function(){
+  if(this.value) document.getElementById('dp-v-manual').value='';
+});
+
+loadAll();
+setInterval(loadAll,5000); // live refresh every 5 seconds
+</script>
+</body>
+</html>
